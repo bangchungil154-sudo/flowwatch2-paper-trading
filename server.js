@@ -37,10 +37,22 @@ function log(message, type='info') {
   state.logs.unshift({ time: new Date().toISOString(), message, type });
   state.logs = state.logs.slice(0, 100);
 }
-async function getJson(url) {
-  const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'FlowWatch2/1.0' } });
-  if (!res.ok) throw new Error(`Upbit API ${res.status}`);
-  return res.json();
+async function getJson(url, retries = 3) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'FlowWatch2/1.0' }, signal: AbortSignal.timeout(10000) });
+      if (res.ok) return await res.json();
+      const err = new Error(`Upbit API ${res.status}`);
+      if (res.status !== 429 && res.status < 500) throw err;
+      lastError = err;
+    } catch (err) {
+      lastError = err;
+      if (attempt === retries) break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500 * (attempt + 1)));
+  }
+  throw lastError || new Error('Upbit API 요청 실패');
 }
 async function refreshMarketList() {
   const all = await getJson(`${UPBIT}/market/all?isDetails=false`);
@@ -67,25 +79,40 @@ async function refreshTickers() {
 async function refreshCandles() {
   const now = Date.now();
   if (now - lastCandlesAt < CANDLE_REFRESH_MS) return;
-  // Candle requests are deliberately limited to the most liquid 12 markets to keep API load modest.
-  const targets = tickerCache.slice(0, 12);
-  const results = await Promise.allSettled(targets.map(async t => {
-    const [m1, m5] = await Promise.all([
-      getJson(`${UPBIT}/candles/minutes/1?market=${t.market}&count=30`),
-      getJson(`${UPBIT}/candles/minutes/5?market=${t.market}&count=30`)
-    ]);
-    candleCache.set(t.market, { m1: m1.reverse(), m5: m5.reverse(), at: now });
-  }));
-  const failed = results.filter(r => r.status === 'rejected').length;
-  if (failed) log(`캔들 일부 조회 실패: ${failed}개`, 'warn');
-  // Refresh the displayed coin objects after candleCache is updated.
+  // Upbit 캔들 API의 순간 요청량을 낮추기 위해 동시 요청을 2개로 제한한다.
+  const targets = tickerCache.slice(0, 10);
+  let nextIndex = 0, success = 0, failures = [];
+  async function worker() {
+    while (nextIndex < targets.length) {
+      const t = targets[nextIndex++];
+      try {
+        const m1 = await getJson(`${UPBIT}/candles/minutes/1?market=${t.market}&count=30`);
+        await new Promise(resolve => setTimeout(resolve, 180));
+        const m5 = await getJson(`${UPBIT}/candles/minutes/5?market=${t.market}&count=30`);
+        candleCache.set(t.market, { m1: m1.reverse(), m5: m5.reverse(), at: Date.now() });
+        success++;
+      } catch (err) {
+        failures.push(`${t.market}: ${err.message}`);
+      }
+      await new Promise(resolve => setTimeout(resolve, 180));
+    }
+  }
+  await Promise.all(Array.from({length: 2}, () => worker()));
   state.coins = state.coins.map(coin => ({
     ...coin,
     candle1m: candleCache.get(coin.market)?.m1 || [],
     candle5m: candleCache.get(coin.market)?.m5 || []
   }));
-  lastCandlesAt = now;
+  if (failures.length) {
+    log(`캔들 조회 실패 ${failures.length}/${targets.length}개 · ${failures.slice(0,2).join(' / ')}`, 'warn');
+    state.candleStatus = `캔들 일부 조회 실패 (${success}/${targets.length})`;
+  } else {
+    state.candleStatus = `캔들 연결 정상 (${success}개)`;
+  }
+  // 완전 실패 시 다음 주기에 바로 재시도하고, 부분 성공이면 요청량 보호를 위해 일반 주기를 유지한다.
+  lastCandlesAt = success ? Date.now() : 0;
 }
+
 function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0; }
 function calcSignal(coin, kind) {
   const m1 = coin.candle1m || [], m5 = coin.candle5m || [];
@@ -168,7 +195,7 @@ function snapshot() {
     }
     strategies[key] = {...s, marketValue, unrealizedPnl:unrealized, equity:s.cash+marketValue, totalPnl:s.realizedPnl+unrealized};
   }
-  return {...state, strategies, feeRate:FEE_RATE, orderKrw:ORDER_KRW, watchCount:WATCH_COUNT};
+  return {...state, strategies, feeRate:FEE_RATE, orderKrw:ORDER_KRW, watchCount:WATCH_COUNT, candleStatus:state.candleStatus || '캔들 대기 중'};
 }
 async function cycle() {
   if (busy) return;

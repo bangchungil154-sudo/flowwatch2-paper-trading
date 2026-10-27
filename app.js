@@ -1,4 +1,8 @@
 const $ = id => document.getElementById(id);
+const COIN_LIST_KEY='flowwatch2-coin-list-open';
+function setCoinListOpen(open){const content=$('coinListContent'),btn=$('toggleCoins');content.hidden=!open;btn.textContent=open?'목록 닫기':'목록 열기';btn.setAttribute('aria-expanded',String(open));try{localStorage.setItem(COIN_LIST_KEY,open?'1':'0')}catch{}}
+$('toggleCoins').onclick=()=>setCoinListOpen($('coinListContent').hidden);
+let coinListOpen=true;try{coinListOpen=localStorage.getItem(COIN_LIST_KEY)!=='0'}catch{}setCoinListOpen(coinListOpen);
 const won = n => '₩' + Math.round(Number(n)||0).toLocaleString('ko-KR');
 const pct = n => `${Number(n)>=0?'+':''}${Number(n||0).toFixed(2)}%`;
 const time = s => { if(!s) return '—'; const d=new Date(s); return d.toLocaleTimeString('ko-KR',{hour12:false}); };
@@ -42,7 +46,7 @@ function render(s){
   $('updated').textContent=s.updatedAt?`갱신 ${time(s.updatedAt)}`:'데이터 대기 중';
   $('coinCount').textContent=(s.coins||[]).length;
   $('runState').textContent=s.running?'실행 중':'정지';
-  $('dataWarning').textContent=s.error?`오류: ${s.error}`:'';
+  $('dataWarning').textContent=s.error?`오류: ${s.error}`:(s.candleStatus||'캔들 대기 중');
   for(const k of ['A','B']){
     const x=s.strategies[k];$('equity'+k).textContent=won(x.equity);$('pnl'+k).textContent=`총 손익 ${x.totalPnl>=0?'+':''}${won(x.totalPnl)}`;$('pnl'+k).className=x.totalPnl>=0?'positive':'negative';renderStrategy(k,x);
   }
