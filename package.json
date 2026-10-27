@@ -1,0 +1,12 @@
+{
+  "name": "flowwatch2-paper-trading",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FlowWatch 2.0 Upbit public market data and paper-trading prototype",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

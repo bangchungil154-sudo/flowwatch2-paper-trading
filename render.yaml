@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: flowwatch2-paper-trading
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/state
+    envVars:
+      - key: NODE_ENV
+        value: production

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>흐름감지 2.0</title><link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div><div class="eyebrow">UPBIT · PAPER TRADING</div><h1>흐름감지 <span>2.0</span></h1><p>실시간 데이터 · 독립 전략 비교 · 모의매매</p></div>
+  <div class="status"><i id="dot"></i><div><b id="connection">연결 확인 중</b><small id="updated">데이터 대기 중</small></div></div>
+</header>
+<main>
+  <section class="toolbar panel">
+    <div><span class="pill">모의매매 전용</span><span class="muted">실거래 주문은 실행하지 않습니다.</span></div>
+    <div class="actions"><button id="refresh">지금 갱신</button><button class="primary" id="start">모의매매 시작</button><button id="stop">정지</button><button class="danger" id="reset">초기화</button></div>
+  </section>
+  <section class="stats">
+    <article class="panel"><label>감시 코인</label><strong id="coinCount">—</strong><small>24시간 거래대금 상위</small></article>
+    <article class="panel"><label>전략 A 총자산</label><strong id="equityA">₩1,000,000</strong><small id="pnlA">손익 ₩0</small></article>
+    <article class="panel"><label>전략 B 총자산</label><strong id="equityB">₩1,000,000</strong><small id="pnlB">손익 ₩0</small></article>
+    <article class="panel"><label>모의매매 상태</label><strong id="runState">정지</strong><small>양쪽 전략 동일 초기자금</small></article>
+  </section>
+  <section class="panel">
+    <div class="section-head"><div><h2>실시간 코인 감시</h2><p>24시간 거래대금 기준 상위 20개 · 캔들 분석은 상위 12개</p></div><span id="dataWarning" class="warning"></span></div>
+    <div class="table-wrap"><table><thead><tr><th>코인</th><th>현재가</th><th>24시간</th><th>거래대금(24h)</th><th>A 신호</th><th>B 신호</th></tr></thead><tbody id="coins"><tr><td colspan="6">실시간 데이터를 불러오는 중…</td></tr></tbody></table></div>
+  </section>
+  <section class="strategy-grid">
+    <article class="panel">
+      <div class="section-head"><div><span class="tag tag-a">전략 A</span><h2>상승 초기 포착</h2><p>단기 상승 전환 + 거래량 증가 + 5분 추세</p></div></div>
+      <div class="mini-stats"><div><label>현금</label><b id="cashA">—</b></div><div><label>보유 평가액</label><b id="valueA">—</b></div><div><label>실현 손익</label><b id="realA">—</b></div></div>
+      <h3>보유 코인</h3><div id="positionsA" class="positions empty">보유 코인 없음</div>
+      <h3>최근 거래</h3><div id="tradesA" class="trades empty">거래 기록 없음</div>
+    </article>
+    <article class="panel">
+      <div class="section-head"><div><span class="tag tag-b">전략 B</span><h2>눌림목 진입</h2><p>상승 추세 + 조정 + 반등 확인</p></div></div>
+      <div class="mini-stats"><div><label>현금</label><b id="cashB">—</b></div><div><label>보유 평가액</label><b id="valueB">—</b></div><div><label>실현 손익</label><b id="realB">—</b></div></div>
+      <h3>보유 코인</h3><div id="positionsB" class="positions empty">보유 코인 없음</div>
+      <h3>최근 거래</h3><div id="tradesB" class="trades empty">거래 기록 없음</div>
+    </article>
+  </section>
+  <section class="panel">
+    <div class="section-head"><div><h2>시스템 기록</h2><p>최근 30개 · 최신순</p></div></div>
+    <div id="logs" class="logs"><div class="empty">기록 대기 중</div></div>
+  </section>
+  <footer>초기 검증용 규칙입니다. 수익성은 보장되지 않으며, 실제 주문 기능은 포함되어 있지 않습니다.</footer>
+</main>
+<script src="/app.js"></script>
+</body></html>
